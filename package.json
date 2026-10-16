@@ -1,0 +1,27 @@
+{
+  "name": "dotheading",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test",
+    "test:e2e": "playwright test",
+    "test:pwa": "playwright test -c playwright.pwa.config.js",
+    "icons": "node scripts/icons.mjs"
+  },
+  "dependencies": {
+    "@maplibre/maplibre-gl-leaflet": "^0.1.4",
+    "@supabase/supabase-js": "^2.118.0",
+    "leaflet": "1.9.4",
+    "maplibre-gl": "^6.14.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "sharp": "^0.35.5",
+    "vite": "^6.4.1",
+    "vite-plugin-pwa": "^2.0.0"
+  }
+}
