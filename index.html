@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,viewport-fit=cover"
+    />
+    <title>DotHeading — trips in your direction</title>
+    <meta name="theme-color" content="#102b3f" />
+    <meta
+      name="description"
+      content="DotHeading: private trip summaries, errands and key-free maps. Install on Android from this website."
+    />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+
+    <style>
+      :root {
+        --sheet: #fff;
+        --ink: #000;
+        --mut: #6b6b6b;
+        --fill: #f3f3f3;
+        --line: #e4e4e4;
+        --btn: #000;
+        --btnink: #fff;
+        --ok: #0b7a3e;
+        --bad: #c62828;
+        --route: #111;
+        --me: #2f6fed;
+        --sh: 0 -4px 24px #00000026;
+      }
+      body[data-theme="night"] {
+        --sheet: #141414;
+        --ink: #fff;
+        --mut: #a3a3a3;
+        --fill: #242424;
+        --line: #2f2f2f;
+        --btn: #fff;
+        --btnink: #000;
+        --ok: #4cc38a;
+        --bad: #ff7a70;
+        --route: #5aa2ff;
+        --me: #5aa2ff;
+        --sh: 0 -4px 24px #000a;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        font:
+          15px/1.35 Inter,
+          system-ui,
+          sans-serif;
+        background: #ddd;
+        color: var(--ink);
+        overflow: hidden;
+        -webkit-font-smoothing: antialiased;
+      }
+      #map {
+        position: fixed;
+        inset: 0;
+      }
+      h1 {
+        font-size: 26px;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        margin: 0 0 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      h2 {
+        font-size: 17px;
+        font-weight: 700;
+        margin: 0 0 6px;
+      }
+      #panel {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        max-height: 64vh;
+        overflow: auto;
+        background: var(--sheet);
+        border-radius: 16px 16px 0 0;
+        box-shadow: var(--sh);
+        padding: 8px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+        transition:
+          background 0.6s,
+          transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+        animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+      }
+      #panel.min {
+        transform: translateY(calc(100% - 52px));
+      }
+      @keyframes rise {
+        from {
+          transform: translateY(100%);
+        }
+      }
+      .grab {
+        width: 36px;
+        height: 4px;
+        border-radius: 9px;
+        background: var(--line);
+        margin: 2px auto 14px;
+        cursor: pointer;
+      }
+      section {
+        padding: 14px 0;
+        border-top: 1px solid var(--line);
+      }
+      section:first-of-type {
+        border: 0;
+        padding-top: 0;
+      }
+      .row {
+        display: flex;
+        gap: 8px;
+        margin: 10px 0 0;
+      }
+      input,
+      select,
+      button {
+        font: inherit;
+        color: inherit;
+        border: 0;
+        border-radius: 10px;
+        height: 48px;
+        padding: 0 14px;
+        min-width: 0;
+      }
+      input,
+      select {
+        background: var(--fill);
+        flex: 1;
+      }
+      input::placeholder {
+        color: var(--mut);
+      }
+      #dest {
+        width: 100%;
+        font-weight: 600;
+        font-size: 17px;
+      }
+      button {
+        background: var(--btn);
+        color: var(--btnink);
+        font-weight: 600;
+        cursor: pointer;
+        transition:
+          transform 0.12s,
+          opacity 0.2s;
+        padding: 0 18px;
+      }
+      button:active {
+        transform: scale(0.97);
+      }
+      button.full {
+        width: 100%;
+        margin-top: 8px;
+      }
+      button.stop {
+        background: var(--bad);
+        color: #fff;
+      }
+      .rng {
+        display: flex;
+        justify-content: space-between;
+        margin-top: 16px;
+        color: var(--mut);
+      }
+      .rng b {
+        color: var(--ink);
+      }
+      input[type="range"] {
+        width: 100%;
+        padding: 0;
+        height: 28px;
+        background: none;
+        accent-color: var(--btn);
+      }
+      ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+      li {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--line);
+        transition: opacity 0.3s;
+      }
+      li:last-child {
+        border: 0;
+      }
+      li.dim {
+        opacity: 0.5;
+      }
+      li .t {
+        flex: 1;
+        min-width: 0;
+      }
+      li b {
+        font-weight: 600;
+      }
+      li small {
+        display: block;
+        color: var(--mut);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      li input[type="checkbox"] {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        accent-color: var(--btn);
+      }
+      .chip {
+        font-size: 13px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 99px;
+        background: var(--fill);
+        color: var(--ink);
+      }
+      .badge {
+        font-size: 13px;
+        font-weight: 600;
+        padding: 4px 10px;
+        border-radius: 99px;
+        background: color-mix(in srgb, var(--ok) 16%, transparent);
+        color: var(--ok);
+      }
+      .badge.bad {
+        background: color-mix(in srgb, var(--bad) 14%, transparent);
+        color: var(--bad);
+      }
+      .x {
+        background: none;
+        color: var(--mut);
+        height: 32px;
+        padding: 0 6px;
+        font-weight: 400;
+      }
+      #hud {
+        position: fixed;
+        top: calc(12px + env(safe-area-inset-top, 0px));
+        left: 12px;
+        right: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--sheet);
+        border-radius: 12px;
+        padding: 8px 8px 8px 16px;
+        box-shadow: 0 2px 16px #0003;
+        transition: background 0.6s;
+      }
+      #hud > div {
+        display: flex;
+        align-items: baseline;
+        gap: 4px;
+      }
+      #spd {
+        font-size: 30px;
+        font-weight: 700;
+        letter-spacing: -0.03em;
+        min-width: 2ch;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+      }
+      #hud small {
+        color: var(--mut);
+        font-weight: 500;
+      }
+      #el {
+        margin-left: auto;
+        font-style: normal;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
+      }
+      .round {
+        width: 40px;
+        height: 40px;
+        padding: 0;
+        border-radius: 50%;
+        background: var(--fill);
+        color: var(--ink);
+        font-size: 20px;
+      }
+      #toast {
+        position: fixed;
+        top: 88px;
+        left: 50%;
+        transform: translate(-50%, -12px);
+        background: var(--ink);
+        color: var(--sheet);
+        font-weight: 500;
+        padding: 12px 18px;
+        border-radius: 10px;
+        opacity: 0;
+        pointer-events: none;
+        transition: 0.3s;
+        z-index: 9;
+        max-width: 90vw;
+        text-align: center;
+      }
+      #toast.on {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+      .car {
+        position: relative;
+        width: 44px;
+        height: 44px;
+        display: grid;
+        place-items: center;
+      }
+      .beam {
+        position: absolute;
+        width: 130px;
+        height: 130px;
+        left: -43px;
+        top: -108px;
+        background: conic-gradient(
+          from 165deg at 50% 100%,
+          transparent,
+          #fff3c8aa 15deg,
+          transparent 30deg
+        );
+        opacity: 0;
+        transition: opacity 1.2s;
+        transform-origin: 50% 100%;
+      }
+      body[data-theme="night"] .beam {
+        opacity: 1;
+      }
+      .puck {
+        position: absolute;
+        inset: 0;
+      }
+      .puck:before {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: 50%;
+        background: var(--me);
+        border: 3px solid #fff;
+        box-shadow: 0 2px 8px #0006;
+      }
+      .puck:after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -2px;
+        margin-left: -7px;
+        border: 7px solid transparent;
+        border-bottom: 12px solid var(--me);
+        border-top: 0;
+      }
+      .pulse {
+        position: absolute;
+        inset: 8px;
+        border-radius: 50%;
+        background: var(--me);
+        opacity: 0.35;
+        animation: pulse 2.2s infinite;
+      }
+      @keyframes pulse {
+        to {
+          transform: scale(2.6);
+          opacity: 0;
+        }
+      }
+      .pin {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 4px solid #fff;
+        box-shadow: 0 2px 8px #0006;
+        animation: pop 0.45s cubic-bezier(0.3, 1.5, 0.5, 1);
+      }
+      .pin.ok {
+        background: var(--ok);
+      }
+      .pin.bad {
+        background: var(--bad);
+      }
+      .pin.dest {
+        border-radius: 4px;
+        background: #000;
+      }
+      @keyframes pop {
+        from {
+          transform: scale(0);
+        }
+      }
+      dialog {
+        border: 0;
+        border-radius: 16px;
+        padding: 22px;
+        max-width: 380px;
+        background: var(--sheet);
+        color: var(--ink);
+        box-shadow: 0 20px 60px #0008;
+      }
+      dialog::backdrop {
+        background: #000a;
+      }
+      dialog p {
+        color: var(--mut);
+        margin: 4px 0 8px;
+      }
+      dialog label {
+        display: flex;
+        gap: 12px;
+        align-items: flex-start;
+        padding: 10px 0;
+        font-weight: 600;
+      }
+      dialog input {
+        flex: none;
+        width: 22px;
+        height: 22px;
+        accent-color: var(--btn);
+      }
+      dialog small {
+        display: block;
+        color: var(--mut);
+        font-weight: 400;
+      }
+      @media (min-width: 800px) {
+        #panel {
+          top: 16px;
+          bottom: 16px;
+          left: 16px;
+          right: auto;
+          width: 400px;
+          max-height: none;
+          border-radius: 16px;
+          padding-top: 16px;
+          box-shadow: 0 4px 30px #0004;
+        }
+        #panel.min {
+          transform: none;
+        }
+        .grab {
+          display: none;
+        }
+        #hud {
+          left: auto;
+          width: 340px;
+          right: 16px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        * {
+          animation: none !important;
+          transition: none !important;
+        }
+      }
+    </style>
+  </head>
+  <body data-theme="day">
+    <div id="map"></div>
+    <aside id="map-status" role="status">
+      <span id="map-message">Loading map…</span
+      ><button id="retry-map" hidden>Retry map</button>
+    </aside>
+    <div id="hud">
+      <div><span id="spd">0</span><small>km/h</small></div>
+      <span id="mi" class="chip">Car</span><i id="el">0:00</i
+      ><button class="round" id="loc" aria-label="Recenter">&#9678;</button>
+    </div>
+    <div id="toast" role="status" aria-live="polite"></div>
+    <main id="panel">
+      <button
+        class="grab"
+        id="grab"
+        aria-label="Expand or collapse panel"
+      ></button>
+      <header class="brand">
+        <img src="/logo.svg" alt="DotHeading logo" width="42" height="42" />
+        <div>
+          <strong>DotHeading</strong><small>Make every stop count.</small>
+        </div>
+        <button id="open-account" class="secondary">Profile</button>
+      </header>
+      <div class="language-row">
+        <label for="language">Language</label
+        ><select id="language" aria-label="Language">
+          <option value="en">English</option>
+          <option value="uz">O‘zbekcha</option>
+          <option value="ru">Русский</option>
+        </select>
+      </div>
+      <section class="install-card">
+        <div class="row">
+          <button id="install">Install on Android</button
+          ><button id="update-app" hidden>Update app</button>
+        </div>
+        <p id="install-help"></p>
+        <p class="draft-notice">
+          Preview release ·
+          <a href="/legal/terms.html" target="_blank" rel="noopener"
+            >Draft terms</a
+          >
+          ·
+          <a href="/legal/privacy.html" target="_blank" rel="noopener"
+            >Privacy</a
+          >
+        </p>
+      </section>
+      <section>
+        <h1>Where to?</h1>
+        <input
+          id="dest"
+          aria-label="Destination"
+          maxlength="200"
+          placeholder="Enter destination"
+        />
+        <p id="service-status" role="status">
+          Free community maps · driving routes only · keep this page open while
+          recording.
+        </p>
+        <p id="location-help" class="muted" hidden>
+          <span
+            >If location is blocked in the embedded preview, open the app in its
+            own tab and allow location in browser settings.</span
+          >
+          <a href="/" target="_blank" rel="noopener">Open full app</a>
+        </p>
+        <button id="go" class="full">Check route</button>
+        <details id="destinations">
+          <summary>Saved destinations</summary>
+          <p class="muted">
+            Save the address above for next time. No search is sent until you
+            check a route.
+          </p>
+          <button id="save-destination" class="secondary">
+            Save destination
+          </button>
+          <ul id="saved-destinations"></ul>
+        </details>
+        <label class="rng"
+          >Max detour per errand <b><span id="thv">5</span> min</b></label
+        >
+        <input
+          aria-label="Maximum detour minutes"
+          id="th"
+          type="range"
+          min="1"
+          max="20"
+          value="5"
+        />
+        <div class="row">
+          <select id="modeSel" aria-label="Transport mode">
+            <option value="auto">Detect transport</option>
+            <option value="WALKING">On foot</option>
+            <option value="BICYCLING">Bike</option>
+            <option value="TWO_WHEELER">Scooter</option>
+            <option value="DRIVING">Car</option>
+          </select>
+          <button id="trip">Start trip</button>
+        </div>
+      </section>
+      <section>
+        <h2>Errands</h2>
+        <div class="row">
+          <input
+            aria-label="Task"
+            maxlength="120"
+            id="en"
+            placeholder="Task"
+          /><input
+            aria-label="Errand place"
+            maxlength="200"
+            id="ep"
+            placeholder="Place"
+          /><button id="add">Add</button>
+        </div>
+        <ul id="list"></ul>
+        <details id="templates">
+          <summary>Errand templates</summary>
+          <p class="muted">
+            Save your current errands as a reusable list. Applying a template
+            adds tasks, not a route.
+          </p>
+          <button id="save-template" class="secondary">
+            Save errands as template
+          </button>
+          <ul id="template-list"></ul>
+        </details>
+      </section>
+      <section>
+        <h2>Past trips</h2>
+        <p id="trip-stats" class="muted"></p>
+        <div class="row">
+          <button id="export">Export trips</button
+          ><button id="privacy">Privacy</button>
+        </div>
+        <div class="row">
+          <button id="import-backup" class="secondary">Restore backup</button
+          ><button id="clear-device" class="secondary">
+            Clear device data
+          </button>
+        </div>
+        <input
+          type="file"
+          id="backup-file"
+          accept="application/json,.json"
+          hidden
+        />
+        <ul id="hist"></ul>
+        <footer>
+          <p>Legal documents are currently in English.</p>
+          <a href="/legal/terms.html" target="_blank" rel="noopener">Terms</a> ·
+          <a href="/legal/privacy.html" target="_blank" rel="noopener"
+            >Privacy policy</a
+          >
+          ·
+          <a href="/legal/licenses.html" target="_blank" rel="noopener"
+            >Licenses</a
+          >
+        </footer>
+      </section>
+    </main>
+
+    <dialog id="consent">
+      <div class="language-row">
+        <label for="consent-language">Language</label
+        ><select id="consent-language">
+          <option value="en">English</option>
+          <option value="uz">O‘zbekcha</option>
+          <option value="ru">Русский</option>
+        </select>
+      </div>
+      <h2>Permissions</h2>
+      <p>
+        Trip history stays in this browser unless you explicitly upload a cloud
+        backup. Map tiles go to OpenFreeMap; searches go to Nominatim and
+        driving routes to OSRM. Those services receive your IP and requested
+        coordinates or search text.
+      </p>
+      <label
+        ><input type="checkbox" checked disabled /><span
+          >Location<small
+            >Needed to show you and find errands on your way.</small
+          ></span
+        ></label
+      >
+      <label
+        ><input type="checkbox" id="c-speed" checked /><span
+          >Speed<small>Display speed from GPS.</small></span
+        ></label
+      >
+      <label
+        ><input type="checkbox" id="c-mode" checked /><span
+          >Transport detection<small
+            >Walk, bike or car, guessed from your speed.</small
+          ></span
+        ></label
+      >
+      <label
+        ><input type="checkbox" id="c-log" checked /><span
+          >Trip history<small>Start time, duration and distance.</small></span
+        ></label
+      >
+      <label
+        ><input type="checkbox" id="accept-terms" /><span
+          >I accept the
+          <a href="/legal/terms.html" target="_blank" rel="noopener"
+            >draft Terms of Use</a
+          >
+          and acknowledge the
+          <a href="/legal/privacy.html" target="_blank" rel="noopener"
+            >Privacy Policy</a
+          >
+          (2026-10-16.1).<small
+            >Preview only. No guaranteed background GPS, emergency navigation,
+            or unlimited community services.</small
+          ></span
+        ></label
+      ><button id="browse" class="full secondary">
+        Browse without location
+      </button>
+      <button id="allow" class="full">Allow and start</button>
+    </dialog>
+
+    <dialog id="account-dialog" aria-labelledby="account-title">
+      <h2 id="account-title">Your DotHeading</h2>
+      <button id="close-account" class="secondary">Close profile</button>
+      <h3>Device-only profile</h3>
+      <p>
+        No password or authentication. Anyone using this browser can see this
+        data.
+      </p>
+      <label for="profile-name">Display name</label
+      ><input
+        id="profile-name"
+        maxlength="80"
+        autocomplete="nickname"
+        placeholder="Your name"
+      /><button id="profile-save">Save profile</button>
+      <h3>Optional cloud account</h3>
+      <p id="cloud-status" role="status"></p>
+      <div id="cloud-login" hidden>
+        <label for="email">Email address</label
+        ><input
+          id="email"
+          type="email"
+          autocomplete="email"
+          maxlength="254"
+          placeholder="you@example.com"
+        />
+        <label
+          ><input type="checkbox" id="account-terms" /><span
+            >I accept the
+            <a href="/legal/terms.html" target="_blank" rel="noopener"
+              >draft Terms</a
+            >
+            and acknowledge the
+            <a href="/legal/privacy.html" target="_blank" rel="noopener"
+              >Privacy Policy</a
+            >.</span
+          ></label
+        >
+        <button id="send-code">Send email code</button>
+        <label for="otp">Email code</label
+        ><input
+          id="otp"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          maxlength="10"
+        /><button id="verify-code">Verify and sign in</button>
+      </div>
+      <div id="cloud-actions" hidden>
+        <p>
+          No automatic merging. Upload replaces the cloud backup; download
+          replaces this device’s trips and errands. Export first.
+        </p>
+        <div class="row">
+          <button id="cloud-upload">Upload backup</button
+          ><button id="cloud-download">Download backup</button
+          ><button id="sign-out">Sign out</button
+          ><button id="account-delete" class="danger">
+            Delete cloud account
+          </button>
+        </div>
+      </div>
+    </dialog>
+    <script type="module" src="/src/app.js"></script>
+  </body>
+</html>
